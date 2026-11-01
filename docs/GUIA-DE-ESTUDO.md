@@ -308,6 +308,8 @@ O Gemini oferece uma API compatível com a da OpenAI, mas há diferenças que s�
 
 3. **Temperatura.** O projeto usa `temperature=0` (respostas mais determinísticas), que é o recomendado para RAG nos modelos da OpenAI. No Gemini 3, o Google recomenda manter o padrão (1.0): valores baixos podem fazer o modelo entrar em loop de raciocínio. Foi o que aconteceu aqui: a segunda chamada do agente ficou pendurada até o Codespaces devolver 504. Por isso a temperatura não é enviada ao Gemini, o raciocínio é limitado com `reasoning_effort=low` (respostas mais rápidas) e toda chamada tem tempo limite (`LLM_TIMEOUT_SECONDS`).
 
+4. **Sobrecarga (503).** No plano gratuito, o Google às vezes responde *"This model is currently experiencing high demand"*. Em vez de só mostrar o erro, o projeto tem um **modelo reserva** (`GEMINI_FALLBACK_MODEL`, por padrão `gemini-flash-lite-latest`): no RAG via `llm.with_fallbacks([...])` e no agente via `ModelFallbackMiddleware` do LangChain. É um padrão comum em produção, às vezes até entre provedores diferentes (ex.: Gemini → OpenAI).
+
 Lição: "compatível com a OpenAI" não quer dizer "igual à OpenAI". Cada provedor tem regras próprias, e elas aparecem nos detalhes.
 
 `tests/test_gemini.py` simula essas duas regras com um servidor falso (`httpx.MockTransport`), sem rede. É um bom exemplo de como testar integração com APIs externas: reproduzir o contrato da API, não só o caminho feliz.

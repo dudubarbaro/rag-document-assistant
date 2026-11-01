@@ -5,6 +5,7 @@ import operator
 from datetime import date
 
 from langchain.agents import create_agent
+from langchain.agents.middleware import ModelFallbackMiddleware
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 from langchain_core.tools import BaseTool, tool
@@ -90,8 +91,11 @@ def run_agent(
     llm: BaseChatModel,
     tools: list[BaseTool],
     history: list[tuple[str, str]] | None = None,
+    fallback: BaseChatModel | None = None,
 ) -> dict:
-    agent = create_agent(llm, tools, system_prompt=AGENT_PROMPT)
+    # Se o modelo principal falhar (ex.: sobrecarga), o middleware tenta o modelo reserva
+    middleware = [ModelFallbackMiddleware(fallback)] if fallback else []
+    agent = create_agent(llm, tools, system_prompt=AGENT_PROMPT, middleware=middleware)
     messages = [
         HumanMessage(c) if role == "user" else AIMessage(c) for role, c in (history or [])[-6:]
     ]

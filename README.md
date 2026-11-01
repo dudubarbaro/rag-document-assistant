@@ -191,6 +191,7 @@ docker-compose.yml # db (pgvector) + api + web
 - **pgvector em vez de um banco vetorial dedicado**: muitas empresas já têm PostgreSQL; dá para guardar vetores, metadados e dados relacionais (tabela `documents`) no mesmo lugar, com transações e backup que o time já conhece. Para volumes muito grandes, cabe índice HNSW ou um serviço dedicado (Azure AI Search, Qdrant, Pinecone).
 - **Uma coleção por modelo de embeddings** (ex.: `documents_gemini_gemini_embedding_001`): vetores de modelos diferentes não são comparáveis e muitas vezes nem têm o mesmo tamanho.
 - **Gemini pela API compatível com a OpenAI**: o mesmo código (`ChatOpenAI`, `OpenAIEmbeddings`) atende OpenAI e Gemini mudando só a URL base, sem mais uma dependência. A compatibilidade não é perfeita: o Gemini 3 exige receber de volta a "assinatura de raciocínio" de cada chamada de ferramenta, que o LangChain descarta, e recusa ferramentas sem parâmetros. `app/gemini.py` resolve os dois pontos, e `tests/test_gemini.py` simula essas regras.
+- **Modelo reserva**: se o modelo principal falhar (ex.: 503 de sobrecarga no plano gratuito do Gemini), o RAG (`with_fallbacks`) e o agente (`ModelFallbackMiddleware`) tentam automaticamente um modelo mais leve.
 - **Score mínimo antes de chamar o LLM**: corta custo e reduz alucinação quando a pergunta não tem relação com os documentos.
 - **Interfaces do LangChain** (`BaseChatModel`, `Embeddings`, `VectorStore`): trocar de provedor ou de banco vetorial é uma mudança de configuração, não de código.
 

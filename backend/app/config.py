@@ -27,6 +27,9 @@ class Settings(BaseSettings):
     # Quanto o Gemini "pensa" antes de responder: low deixa as respostas mais rápidas.
     # Deixe vazio para usar o padrão do modelo.
     gemini_reasoning_effort: str = "low"
+    # Modelo reserva, usado quando o principal falha (ex.: 503 "high demand" no plano gratuito).
+    # Deixe vazio para desativar.
+    gemini_fallback_model: str = "gemini-flash-lite-latest"
 
     # Azure OpenAI
     azure_openai_endpoint: str | None = None

@@ -15,7 +15,12 @@ from pydantic import BaseModel, Field
 from .agent import build_tools, run_agent
 from .config import Settings, get_settings
 from .ingestion import EmptyDocumentError, UnsupportedFileError, delete_document, ingest_file
-from .providers import get_chat_model, get_embeddings, supports_tool_calling
+from .providers import (
+    get_chat_model,
+    get_embeddings,
+    get_fallback_chat_model,
+    supports_tool_calling,
+)
 from .rag import answer_question
 from .store import build_registry, build_vector_store
 
@@ -47,6 +52,11 @@ def llm_error_message(exc: openai.APIError) -> tuple[int, str]:
             "Modelo não encontrado no provedor de IA. Confira o nome do modelo no .env "
             "(GEMINI_CHAT_MODEL / OPENAI_CHAT_MODEL)."
         )
+    if isinstance(exc, openai.InternalServerError):
+        return 503, (
+            "O modelo de IA está sobrecarregado no momento (comum no plano gratuito, "
+            "em horário de pico). Tente de novo em alguns segundos."
+        )
     if isinstance(exc, openai.APITimeoutError):
         return 504, (
             "O provedor de IA demorou demais para responder. Tente de novo em instantes "
@@ -66,6 +76,7 @@ def init_state(app: FastAPI, settings: Settings) -> None:
     embeddings = get_embeddings(settings)
     app.state.settings = settings
     app.state.llm = get_chat_model(settings)
+    app.state.llm_fallback = get_fallback_chat_model(settings)
     app.state.vector_store = build_vector_store(settings, embeddings)
     app.state.registry = build_registry(settings)
     app.state.agent_enabled = supports_tool_calling(settings)
@@ -139,10 +150,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @app.post("/api/chat")
     def chat(body: ChatRequest, request: Request):
         s: Settings = request.app.state.settings
+        llm = request.app.state.llm
+        if request.app.state.llm_fallback:
+            llm = llm.with_fallbacks([request.app.state.llm_fallback])
         result = answer_question(
             body.question,
             request.app.state.vector_store,
-            request.app.state.llm,
+            llm,
             k=s.top_k,
             min_relevance=s.relevance_threshold,
             history=[(t.role, t.content) for t in body.history],
@@ -154,7 +168,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         s: Settings = request.app.state.settings
         if not request.app.state.agent_enabled:
             raise HTTPException(
-                503, "O modo agente precisa de um LLM real (LLM_PROVIDER=openai ou azure)."
+                503, "O modo agente precisa de um LLM real (LLM_PROVIDER=gemini, openai ou azure)."
             )
         tools = build_tools(
             request.app.state.vector_store,
@@ -167,6 +181,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             request.app.state.llm,
             tools,
             history=[(t.role, t.content) for t in body.history],
+            fallback=request.app.state.llm_fallback,
         )
 
     return app

@@ -66,3 +66,57 @@ def test_agent_works_with_gemini_rules(policy_bytes):
 
     assert result["answer"] == "São R$ 1800 por ano."
     assert [s["tool"] for s in result["steps"]] == ["calcular"]
+
+
+def overloaded(request: httpx.Request) -> httpx.Response:
+    error = {"code": 503, "message": "high demand", "status": "UNAVAILABLE"}
+    return httpx.Response(503, json=[{"error": error}])
+
+
+def _gemini(handler, **kwargs) -> GeminiChatModel:
+    return GeminiChatModel(
+        model="gemini-test",
+        api_key="fake",
+        base_url="https://gemini.test/v1beta/openai/",
+        max_retries=0,
+        http_client=httpx.Client(transport=httpx.MockTransport(handler)),
+        **kwargs,
+    )
+
+
+def test_agent_uses_fallback_model_when_primary_is_overloaded(policy_bytes):
+    store, registry = LocalVectorStore(HashingEmbeddings()), InMemoryRegistry()
+    ingest_file("politica.md", policy_bytes, store, registry, 400, 40)
+
+    result = run_agent(
+        "Quanto recebo por ano?",
+        _gemini(overloaded),
+        build_tools(store, registry, 3, 0.1),
+        fallback=_gemini(fake_gemini),
+    )
+
+    assert result["answer"] == "São R$ 1800 por ano."
+
+
+def test_overload_without_fallback_returns_clear_503(client, policy_bytes):
+    client.post("/api/documents", files={"file": ("p.md", policy_bytes, "text/markdown")})
+    client.app.state.llm = _gemini(overloaded)
+    client.app.state.llm_fallback = None
+
+    r = client.post("/api/chat", json={"question": "Qual o valor do auxílio home office?"})
+
+    assert r.status_code == 503
+    assert "sobrecarregado" in r.json()["detail"]
+
+
+def test_rag_uses_fallback_model_when_primary_is_overloaded(client, policy_bytes):
+    from langchain_core.language_models.fake_chat_models import FakeListChatModel
+
+    client.post("/api/documents", files={"file": ("p.md", policy_bytes, "text/markdown")})
+    client.app.state.llm = _gemini(overloaded)
+    client.app.state.llm_fallback = FakeListChatModel(responses=["R$ 150,00 por mês [1]."])
+
+    r = client.post("/api/chat", json={"question": "Qual o valor do auxílio home office?"})
+
+    assert r.status_code == 200
+    assert r.json()["answer"] == "R$ 150,00 por mês [1]."
