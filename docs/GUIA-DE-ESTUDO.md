@@ -18,6 +18,8 @@ Ordem sugerida:
 
 ## 1. Rodando no Windows
 
+> **Sem espaço em disco ou sem querer instalar nada?** Abra o repositório no **GitHub Codespaces** (Code → Codespaces → Create codespace). O ambiente sobe na nuvem já com Python, Node, Docker e as dependências, e o VS Code roda no navegador, com breakpoints e tudo. Todos os exercícios deste guia funcionam lá. No plano gratuito, o Codespace desliga sozinho depois de 30 minutos sem uso.
+
 ### Pré-requisitos
 
 No PowerShell (o `winget` já vem no Windows 10/11):
