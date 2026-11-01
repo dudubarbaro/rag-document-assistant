@@ -1,16 +1,14 @@
 {
   "name": "RAG Document Assistant",
-  "image": "mcr.microsoft.com/devcontainers/python:1-3.12-bookworm",
-  "features": {
-    "ghcr.io/devcontainers/features/node:1": { "version": "22" },
-    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
-  },
+  // Imagem padrão do GitHub Codespaces: já vem com Docker, Python e Node,
+  // sem nada para instalar durante o build (sobe mais rápido e com menos risco de falha).
+  "image": "mcr.microsoft.com/devcontainers/universal:6",
   "forwardPorts": [5173, 8000],
   "portsAttributes": {
     "5173": { "label": "Interface (React)" },
     "8000": { "label": "API (FastAPI)" }
   },
-  "postCreateCommand": "cp -n .env.example .env; pip install -r backend/requirements-dev.txt && cd frontend && npm ci",
+  "postCreateCommand": "cp -n .env.example .env; pip install -r backend/requirements-dev.txt; cd frontend && npm ci",
   "customizations": {
     "vscode": {
       "extensions": [

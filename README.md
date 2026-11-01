@@ -105,7 +105,7 @@ No VS Code, o arquivo `.vscode/launch.json` traz configurações prontas para ro
 
 ### Opção 3: GitHub Codespaces (sem instalar nada)
 
-No GitHub, clique em **Code → Codespaces → Create codespace on main**. O ambiente já vem com Python 3.12, Node 22, Docker e as dependências instaladas (`.devcontainer/devcontainer.json`). No terminal do Codespace, rode `docker compose up --build` e abra a porta 5173 na aba *Ports*.
+No GitHub, clique em **Code → Codespaces → Create codespace on main**. O ambiente já vem com Python, Node, Docker e as dependências instaladas (`.devcontainer/devcontainer.json`). No terminal do Codespace, rode `docker compose up --build` e abra a porta 5173 na aba *Ports*.
 
 ### Configuração (`.env`)
 
