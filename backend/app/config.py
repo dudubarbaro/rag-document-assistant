@@ -10,13 +10,19 @@ class Settings(BaseSettings):
     # Lê o .env da raiz do projeto mesmo quando o backend roda de dentro de backend/
     model_config = SettingsConfigDict(env_file=("../.env", ".env"), extra="ignore")
 
-    # Provedor de LLM/embeddings: "openai", "azure" ou "offline" (sem chave, para demo e testes)
-    llm_provider: Literal["openai", "azure", "offline"] = "offline"
+    # Provedor de LLM/embeddings: "openai", "azure", "gemini" ou "offline" (sem chave, para demo)
+    llm_provider: Literal["openai", "azure", "gemini", "offline"] = "offline"
 
-    # OpenAI
+    # OpenAI (ou qualquer API compatível com a da OpenAI, via OPENAI_BASE_URL)
     openai_api_key: str | None = None
+    openai_base_url: str | None = None
     openai_chat_model: str = "gpt-4o-mini"
     openai_embedding_model: str = "text-embedding-3-small"
+
+    # Google Gemini (tem plano gratuito: chave em https://aistudio.google.com/apikey)
+    gemini_api_key: str | None = None
+    gemini_chat_model: str = "gemini-2.5-flash"
+    gemini_embedding_model: str = "gemini-embedding-001"
 
     # Azure OpenAI
     azure_openai_endpoint: str | None = None
@@ -37,6 +43,8 @@ class Settings(BaseSettings):
     min_relevance: float | None = None
     temperature: float = 0.0
     max_upload_mb: int = 20
+    # Quantos chunks vão em cada chamada de embeddings (o Gemini aceita no máximo 100)
+    embedding_batch_size: int = 100
 
     # Imprime no terminal tudo o que entra e sai do LLM (ótimo para estudar o fluxo)
     debug_llm: bool = False

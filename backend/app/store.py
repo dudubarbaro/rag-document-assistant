@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
 from typing import Protocol
@@ -10,6 +11,7 @@ from langchain_core.embeddings import Embeddings
 from langchain_core.vectorstores import InMemoryVectorStore, VectorStore
 
 from .config import Settings
+from .providers import embedding_model_name
 
 
 @dataclass
@@ -109,6 +111,15 @@ class LocalVectorStore(InMemoryVectorStore):
         return lambda score: score
 
 
+def collection_name(settings: Settings) -> str:
+    """Uma coleção por modelo de embeddings: vetores de modelos diferentes não são comparáveis
+    (e muitas vezes nem têm o mesmo tamanho). Ex.: documents_gemini_gemini_embedding_001."""
+    if settings.llm_provider == "offline":
+        return "documents_offline"
+    model = re.sub(r"[^a-z0-9]+", "_", embedding_model_name(settings).lower()).strip("_")
+    return f"documents_{settings.llm_provider}_{model}"
+
+
 def build_vector_store(settings: Settings, embeddings: Embeddings) -> VectorStore:
     if settings.database_url:
         from langchain_postgres import PGVector
@@ -116,8 +127,7 @@ def build_vector_store(settings: Settings, embeddings: Embeddings) -> VectorStor
         return PGVector(
             embeddings=embeddings,
             connection=settings.database_url,
-            # uma coleção por provedor: embeddings de modelos diferentes têm dimensões diferentes
-            collection_name=f"documents_{settings.llm_provider}",
+            collection_name=collection_name(settings),
             use_jsonb=True,
         )
     return LocalVectorStore(embeddings)

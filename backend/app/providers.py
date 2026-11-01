@@ -95,14 +95,39 @@ class OfflineChatModel(BaseChatModel):
         return ChatResult(generations=[ChatGeneration(message=AIMessage(content=text))])
 
 
+GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
+
+
+def _openai_compatible(settings: Settings) -> dict:
+    """Parâmetros de conexão para a OpenAI ou APIs compatíveis com ela (como o Gemini)."""
+    if settings.llm_provider == "gemini":
+        return {"api_key": settings.gemini_api_key, "base_url": GEMINI_BASE_URL}
+    return {"api_key": settings.openai_api_key, "base_url": settings.openai_base_url}
+
+
+def chat_model_name(settings: Settings) -> str:
+    if settings.llm_provider == "gemini":
+        return settings.gemini_chat_model
+    return settings.openai_chat_model
+
+
+def embedding_model_name(settings: Settings) -> str:
+    return {
+        "openai": settings.openai_embedding_model,
+        "gemini": settings.gemini_embedding_model,
+        "azure": settings.azure_openai_embedding_deployment or "azure",
+        "offline": "hashing",
+    }[settings.llm_provider]
+
+
 def get_chat_model(settings: Settings) -> BaseChatModel:
-    if settings.llm_provider == "openai":
+    if settings.llm_provider in ("openai", "gemini"):
         from langchain_openai import ChatOpenAI
 
         return ChatOpenAI(
-            model=settings.openai_chat_model,
-            api_key=settings.openai_api_key,
+            model=chat_model_name(settings),
             temperature=settings.temperature,
+            **_openai_compatible(settings),
         )
     if settings.llm_provider == "azure":
         from langchain_openai import AzureChatOpenAI
@@ -118,11 +143,16 @@ def get_chat_model(settings: Settings) -> BaseChatModel:
 
 
 def get_embeddings(settings: Settings) -> Embeddings:
-    if settings.llm_provider == "openai":
+    if settings.llm_provider in ("openai", "gemini"):
         from langchain_openai import OpenAIEmbeddings
 
+        conn = _openai_compatible(settings)
         return OpenAIEmbeddings(
-            model=settings.openai_embedding_model, api_key=settings.openai_api_key
+            model=embedding_model_name(settings),
+            chunk_size=settings.embedding_batch_size,
+            # Fora da OpenAI, envia o texto puro: outras APIs não aceitam texto já tokenizado
+            check_embedding_ctx_length=conn["base_url"] is None,
+            **conn,
         )
     if settings.llm_provider == "azure":
         from langchain_openai import AzureOpenAIEmbeddings
@@ -132,9 +162,10 @@ def get_embeddings(settings: Settings) -> Embeddings:
             api_key=settings.azure_openai_api_key,
             api_version=settings.azure_openai_api_version,
             azure_deployment=settings.azure_openai_embedding_deployment,
+            chunk_size=settings.embedding_batch_size,
         )
     return HashingEmbeddings()
 
 
 def supports_tool_calling(settings: Settings) -> bool:
-    return settings.llm_provider in ("openai", "azure")
+    return settings.llm_provider in ("openai", "azure", "gemini")

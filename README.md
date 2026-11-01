@@ -2,7 +2,7 @@
 
 Aplicação que permite enviar documentos (PDF, TXT, Markdown) e conversar com eles usando **RAG (Retrieval-Augmented Generation)**: o sistema busca os trechos relevantes em um **banco vetorial (PostgreSQL + pgvector)** e o LLM responde **citando as fontes**. Inclui também um **agente com tool calling** que decide sozinho quando buscar nos documentos, listar arquivos ou fazer cálculos.
 
-**Stack:** Python 3.12 · FastAPI · LangChain · LangGraph (agente) · PostgreSQL + pgvector · OpenAI / Azure OpenAI · React + TypeScript (Vite) · Docker Compose · GitHub Actions
+**Stack:** Python 3.12 · FastAPI · LangChain · LangGraph (agente) · PostgreSQL + pgvector · OpenAI / Azure OpenAI / Google Gemini · React + TypeScript (Vite) · Docker Compose · GitHub Actions
 
 ![Interface: chat com citações das fontes](docs/screenshot.png)
 
@@ -15,7 +15,7 @@ Aplicação que permite enviar documentos (PDF, TXT, Markdown) e conversar com e
 - **Guardrails**: se nenhum trecho for relevante, a API responde "não encontrei" **sem chamar o LLM** (evita alucinação e economiza tokens). O prompt trata o conteúdo dos documentos como dado, não instrução (mitigação de *prompt injection*).
 - **Agente com ferramentas** (`buscar_documentos`, `listar_documentos`, `calcular`, `data_de_hoje`), mostrando na interface quais ferramentas foram chamadas.
 - **Histórico de conversa** para perguntas de acompanhamento ("e para estagiários?").
-- **Provedor plugável**: OpenAI, Azure OpenAI ou **modo offline** (roda sem chave nenhuma, para demo e CI).
+- **Provedor plugável**: OpenAI, Azure OpenAI, **Google Gemini** (tem plano gratuito) ou **modo offline** (roda sem chave nenhuma, para demo e CI).
 - **Avaliação de retrieval** com métricas *hit rate@k* e *MRR*.
 - **Testes automatizados** (pytest) e CI no GitHub Actions.
 
@@ -68,6 +68,13 @@ docker compose up --build
 
 Sem chave de API, deixe `LLM_PROVIDER=offline`: tudo funciona, mas a "resposta" é um resumo extrativo (as frases mais parecidas com a pergunta) e o modo agente fica desabilitado.
 
+Para testar **de graça com um LLM de verdade**, crie uma chave do Gemini em https://aistudio.google.com/apikey (sem cartão) e coloque no `.env`:
+
+```ini
+LLM_PROVIDER=gemini
+GEMINI_API_KEY=sua-chave
+```
+
 Depois de subir, envie o arquivo de exemplo `samples/politica-trabalho-remoto.md` (política fictícia de uma empresa) e pergunte, por exemplo:
 - *Qual o valor do auxílio home office?*
 - *Estagiário pode trabalhar remoto?*
@@ -111,8 +118,10 @@ No GitHub, clique em **Code → Codespaces → Create codespace on main**. O amb
 
 | Variável | Descrição | Padrão |
 |---|---|---|
-| `LLM_PROVIDER` | `openai`, `azure` ou `offline` | `offline` |
+| `LLM_PROVIDER` | `gemini`, `openai`, `azure` ou `offline` | `offline` |
+| `GEMINI_API_KEY`, `GEMINI_CHAT_MODEL`, `GEMINI_EMBEDDING_MODEL` | Google Gemini (via API compatível com a OpenAI) | `gemini-2.5-flash`, `gemini-embedding-001` |
 | `OPENAI_API_KEY`, `OPENAI_CHAT_MODEL`, `OPENAI_EMBEDDING_MODEL` | OpenAI | `gpt-4o-mini`, `text-embedding-3-small` |
+| `OPENAI_BASE_URL` | Outra API compatível com a da OpenAI | — |
 | `AZURE_OPENAI_ENDPOINT`, `AZURE_OPENAI_API_KEY`, `AZURE_OPENAI_CHAT_DEPLOYMENT`, `AZURE_OPENAI_EMBEDDING_DEPLOYMENT` | Azure OpenAI | — |
 | `DATABASE_URL` | Postgres com pgvector. Vazio = banco em memória | definido no compose |
 | `CHUNK_SIZE` / `CHUNK_OVERLAP` | Tamanho e sobreposição dos chunks | `1000` / `150` |
@@ -154,7 +163,7 @@ A avaliação mede se a resposta esperada aparece entre os `k` chunks recuperado
 | hit rate | 64% | 91% |
 | MRR | 0.64 | 0.76 |
 
-O erro restante é instrutivo: *"Posso colocar código da empresa no ChatGPT?"* não acha o trecho sobre *"ferramentas de IA públicas"*, porque os embeddings offline são **lexicais** (comparam palavras). Embeddings semânticos (`text-embedding-3-small`) entendem que "ChatGPT" e "IA pública" são relacionados. Rode o mesmo script com `LLM_PROVIDER=openai` para comparar.
+O erro restante é instrutivo: *"Posso colocar código da empresa no ChatGPT?"* não acha o trecho sobre *"ferramentas de IA públicas"*, porque os embeddings offline são **lexicais** (comparam palavras). Embeddings semânticos (`text-embedding-3-small`) entendem que "ChatGPT" e "IA pública" são relacionados. Rode o mesmo script com `LLM_PROVIDER=gemini` ou `openai` para comparar.
 
 ## Estrutura
 
@@ -179,7 +188,8 @@ docker-compose.yml # db (pgvector) + api + web
 ## Decisões técnicas
 
 - **pgvector em vez de um banco vetorial dedicado**: muitas empresas já têm PostgreSQL; dá para guardar vetores, metadados e dados relacionais (tabela `documents`) no mesmo lugar, com transações e backup que o time já conhece. Para volumes muito grandes, cabe índice HNSW ou um serviço dedicado (Azure AI Search, Qdrant, Pinecone).
-- **Uma coleção por provedor**: embeddings de modelos diferentes têm dimensões diferentes e não podem ser comparados entre si.
+- **Uma coleção por modelo de embeddings** (ex.: `documents_gemini_gemini_embedding_001`): vetores de modelos diferentes não são comparáveis e muitas vezes nem têm o mesmo tamanho.
+- **Gemini pela API compatível com a OpenAI**: o mesmo código (`ChatOpenAI`, `OpenAIEmbeddings`) atende OpenAI e Gemini mudando só a URL base, sem mais uma dependência.
 - **Score mínimo antes de chamar o LLM**: corta custo e reduz alucinação quando a pergunta não tem relação com os documentos.
 - **Interfaces do LangChain** (`BaseChatModel`, `Embeddings`, `VectorStore`): trocar de provedor ou de banco vetorial é uma mudança de configuração, não de código.
 
