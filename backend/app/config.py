@@ -21,15 +21,17 @@ class Settings(BaseSettings):
 
     # Google Gemini (tem plano gratuito: chave em https://aistudio.google.com/apikey)
     gemini_api_key: str | None = None
-    # "gemini-flash-latest" é um apelido que sempre aponta para o Flash mais recente
-    gemini_chat_model: str = "gemini-flash-latest"
+    # Apelidos "-latest" sempre apontam para a versão mais recente (os nomes com versão,
+    # como gemini-2.5-flash, são aposentados). O Lite é mais rápido e tem limites gratuitos
+    # maiores, o que basta para RAG; o Flash completo fica como reserva.
+    gemini_chat_model: str = "gemini-flash-lite-latest"
     gemini_embedding_model: str = "gemini-embedding-001"
     # Quanto o Gemini "pensa" antes de responder: low deixa as respostas mais rápidas.
     # Deixe vazio para usar o padrão do modelo.
     gemini_reasoning_effort: str = "low"
     # Modelo reserva, usado quando o principal falha (ex.: 503 "high demand" no plano gratuito).
     # Deixe vazio para desativar.
-    gemini_fallback_model: str = "gemini-flash-lite-latest"
+    gemini_fallback_model: str = "gemini-flash-latest"
 
     # Azure OpenAI
     azure_openai_endpoint: str | None = None
@@ -52,7 +54,8 @@ class Settings(BaseSettings):
     # podem fazer o modelo entrar em loop, então ela não é enviada para o Gemini.
     temperature: float = 0.0
     # Tempo máximo de cada chamada ao provedor de IA (evita requisições penduradas)
-    llm_timeout_seconds: float = 60
+    # O proxy do Codespaces corta requisições em ~100 s, e o agente faz várias chamadas.
+    llm_timeout_seconds: float = 30
     max_upload_mb: int = 20
     # Quantos chunks vão em cada chamada de embeddings (o Gemini aceita no máximo 100)
     embedding_batch_size: int = 100

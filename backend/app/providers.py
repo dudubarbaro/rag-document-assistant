@@ -120,14 +120,14 @@ def embedding_model_name(settings: Settings) -> str:
     }[settings.llm_provider]
 
 
-def _gemini_chat(settings: Settings, model: str) -> BaseChatModel:
+def _gemini_chat(settings: Settings, model: str, max_retries: int) -> BaseChatModel:
     from .gemini import GeminiChatModel
 
     return GeminiChatModel(
         model=model,
         reasoning_effort=settings.gemini_reasoning_effort or None,
         timeout=settings.llm_timeout_seconds,
-        max_retries=1,  # falha rápido para dar a vez ao modelo reserva
+        max_retries=max_retries,
         **_openai_compatible(settings),
     )
 
@@ -135,7 +135,7 @@ def _gemini_chat(settings: Settings, model: str) -> BaseChatModel:
 def get_fallback_chat_model(settings: Settings) -> BaseChatModel | None:
     """Modelo reserva para quando o principal falhar (sobrecarga, limite, instabilidade)."""
     if settings.llm_provider == "gemini" and settings.gemini_fallback_model:
-        return _gemini_chat(settings, settings.gemini_fallback_model)
+        return _gemini_chat(settings, settings.gemini_fallback_model, max_retries=1)
     return None
 
 
@@ -144,7 +144,9 @@ def get_chat_model(settings: Settings) -> BaseChatModel:
         from langchain_openai import ChatOpenAI
 
         if settings.llm_provider == "gemini":
-            return _gemini_chat(settings, chat_model_name(settings))
+            # Com modelo reserva, não insiste no principal: se ele falhar, o reserva assume logo
+            retries = 0 if settings.gemini_fallback_model else 1
+            return _gemini_chat(settings, chat_model_name(settings), max_retries=retries)
         return ChatOpenAI(
             model=chat_model_name(settings),
             temperature=settings.temperature,

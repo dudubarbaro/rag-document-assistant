@@ -308,7 +308,9 @@ O Gemini oferece uma API compatível com a da OpenAI, mas há diferenças que s�
 
 3. **Temperatura.** O projeto usa `temperature=0` (respostas mais determinísticas), que é o recomendado para RAG nos modelos da OpenAI. No Gemini 3, o Google recomenda manter o padrão (1.0): valores baixos podem fazer o modelo entrar em loop de raciocínio. Foi o que aconteceu aqui: a segunda chamada do agente ficou pendurada até o Codespaces devolver 504. Por isso a temperatura não é enviada ao Gemini, o raciocínio é limitado com `reasoning_effort=low` (respostas mais rápidas) e toda chamada tem tempo limite (`LLM_TIMEOUT_SECONDS`).
 
-4. **Sobrecarga (503).** No plano gratuito, o Google às vezes responde *"This model is currently experiencing high demand"*. Em vez de só mostrar o erro, o projeto tem um **modelo reserva** (`GEMINI_FALLBACK_MODEL`, por padrão `gemini-flash-lite-latest`): no RAG via `llm.with_fallbacks([...])` e no agente via `ModelFallbackMiddleware` do LangChain. É um padrão comum em produção, às vezes até entre provedores diferentes (ex.: Gemini → OpenAI).
+4. **Sobrecarga (503).** No plano gratuito, o Google às vezes responde *"This model is currently experiencing high demand"*. Em vez de só mostrar o erro, o projeto tem um **modelo reserva** (`GEMINI_FALLBACK_MODEL`): no RAG via `llm.with_fallbacks([...])` e no agente via `ModelFallbackMiddleware` do LangChain. É um padrão comum em produção, às vezes até entre provedores diferentes (ex.: Gemini → OpenAI).
+
+5. **Latência.** Com o modelo sobrecarregado, algumas respostas passaram de 60 segundos. Como o agente faz várias chamadas seguidas e o Codespaces corta requisições em ~100 s, o padrão virou o `gemini-flash-lite-latest` (mais rápido, com limites gratuitos maiores e suficiente para RAG), com o Flash completo como reserva, tempo limite de 30 s e nenhuma nova tentativa no principal: se ele travar, o reserva assume. Escolher o modelo é um equilíbrio entre qualidade, custo e latência, e para muitas tarefas de RAG o modelo menor resolve.
 
 Lição: "compatível com a OpenAI" não quer dizer "igual à OpenAI". Cada provedor tem regras próprias, e elas aparecem nos detalhes.
 
