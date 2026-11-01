@@ -1,0 +1,13 @@
+[
+  {"question": "Quantos dias por semana posso trabalhar de casa?", "expected": "até 3 dias por semana"},
+  {"question": "Quais são os dias presenciais obrigatórios?", "expected": "terças e quintas-feiras"},
+  {"question": "Estagiário pode fazer home office?", "expected": "no máximo 1 dia por semana"},
+  {"question": "Qual o valor do auxílio home office?", "expected": "R$ 150,00"},
+  {"question": "Quanto é o reembolso para comprar um monitor?", "expected": "R$ 1.200,00"},
+  {"question": "Em quantos períodos posso dividir as férias?", "expected": "até 3 períodos"},
+  {"question": "Com quanta antecedência devo pedir férias?", "expected": "45 dias"},
+  {"question": "Qual o horário de núcleo para reuniões?", "expected": "das 10h às 16h"},
+  {"question": "Posso usar Wi-Fi público?", "expected": "sem a VPN corporativa"},
+  {"question": "Em quanto tempo devo comunicar um incidente de segurança?", "expected": "24 horas"},
+  {"question": "Posso colocar código da empresa no ChatGPT?", "expected": "código-fonte proprietário"}
+]
