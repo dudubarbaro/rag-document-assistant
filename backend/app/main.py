@@ -5,9 +5,11 @@ from contextlib import asynccontextmanager
 from dataclasses import asdict
 from typing import Literal
 
+import openai
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from .agent import build_tools, run_agent
@@ -29,6 +31,25 @@ class ChatTurn(BaseModel):
 class ChatRequest(BaseModel):
     question: str = Field(min_length=1, max_length=4000)
     history: list[ChatTurn] = Field(default_factory=list)
+
+
+def llm_error_message(exc: openai.APIError) -> tuple[int, str]:
+    """Traduz erros do provedor de IA em mensagens que ajudam a resolver o problema."""
+    if isinstance(exc, openai.RateLimitError):
+        return 429, (
+            "Limite de requisições do provedor de IA atingido (comum no plano gratuito). "
+            "Aguarde um minuto e tente de novo."
+        )
+    if isinstance(exc, openai.AuthenticationError | openai.PermissionDeniedError):
+        return 502, "Chave de API recusada pelo provedor de IA. Confira a chave no .env."
+    if isinstance(exc, openai.NotFoundError):
+        return 502, (
+            "Modelo não encontrado no provedor de IA. Confira o nome do modelo no .env "
+            "(GEMINI_CHAT_MODEL / OPENAI_CHAT_MODEL)."
+        )
+    if isinstance(exc, openai.APIConnectionError):
+        return 502, "Não foi possível conectar ao provedor de IA."
+    return 502, f"Erro no provedor de IA: {exc}"
 
 
 def init_state(app: FastAPI, settings: Settings) -> None:
@@ -59,6 +80,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.add_middleware(
         CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"]
     )
+
+    @app.exception_handler(openai.APIError)
+    async def provider_error(request: Request, exc: openai.APIError):
+        status, message = llm_error_message(exc)
+        log.warning("Erro do provedor de IA em %s: %s", request.url.path, exc)
+        return JSONResponse(status_code=status, content={"detail": message})
 
     @app.get("/api/health")
     def health(request: Request):

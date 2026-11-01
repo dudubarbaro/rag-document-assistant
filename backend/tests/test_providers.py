@@ -18,7 +18,7 @@ def test_gemini_uses_openai_compatible_endpoint():
     chat = get_chat_model(s)
     emb = get_embeddings(s)
 
-    assert chat.model_name == "gemini-2.5-flash"
+    assert chat.model_name == "gemini-flash-latest"
     assert chat.openai_api_base == GEMINI_BASE_URL
     assert emb.model == "gemini-embedding-001"
     assert emb.openai_api_base == GEMINI_BASE_URL

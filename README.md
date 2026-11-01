@@ -119,7 +119,7 @@ No GitHub, clique em **Code → Codespaces → Create codespace on main**. O amb
 | Variável | Descrição | Padrão |
 |---|---|---|
 | `LLM_PROVIDER` | `gemini`, `openai`, `azure` ou `offline` | `offline` |
-| `GEMINI_API_KEY`, `GEMINI_CHAT_MODEL`, `GEMINI_EMBEDDING_MODEL` | Google Gemini (via API compatível com a OpenAI) | `gemini-2.5-flash`, `gemini-embedding-001` |
+| `GEMINI_API_KEY`, `GEMINI_CHAT_MODEL`, `GEMINI_EMBEDDING_MODEL` | Google Gemini (via API compatível com a OpenAI) | `gemini-flash-latest`, `gemini-embedding-001` |
 | `OPENAI_API_KEY`, `OPENAI_CHAT_MODEL`, `OPENAI_EMBEDDING_MODEL` | OpenAI | `gpt-4o-mini`, `text-embedding-3-small` |
 | `OPENAI_BASE_URL` | Outra API compatível com a da OpenAI | — |
 | `AZURE_OPENAI_ENDPOINT`, `AZURE_OPENAI_API_KEY`, `AZURE_OPENAI_CHAT_DEPLOYMENT`, `AZURE_OPENAI_EMBEDDING_DEPLOYMENT` | Azure OpenAI | — |

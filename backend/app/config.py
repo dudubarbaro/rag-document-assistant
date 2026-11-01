@@ -21,7 +21,8 @@ class Settings(BaseSettings):
 
     # Google Gemini (tem plano gratuito: chave em https://aistudio.google.com/apikey)
     gemini_api_key: str | None = None
-    gemini_chat_model: str = "gemini-2.5-flash"
+    # "gemini-flash-latest" é um apelido que sempre aponta para o Flash mais recente
+    gemini_chat_model: str = "gemini-flash-latest"
     gemini_embedding_model: str = "gemini-embedding-001"
 
     # Azure OpenAI

@@ -41,3 +41,32 @@ def test_validates_empty_question(client):
 def test_agent_requires_real_llm(client):
     r = client.post("/api/agent", json={"question": "oi"})
     assert r.status_code == 503
+
+
+def test_provider_errors_become_clear_messages(client, policy_bytes):
+    import httpx
+    import openai
+    from langchain_core.language_models.fake_chat_models import FakeListChatModel
+
+    class FailingLLM(FakeListChatModel):
+        error: Exception
+
+        def _call(self, *args, **kwargs):
+            raise self.error
+
+    def failing(status: int, cls):
+        response = httpx.Response(status, request=httpx.Request("POST", "http://llm"))
+        return FailingLLM(responses=[], error=cls("falhou", response=response, body=None))
+
+    client.post("/api/documents", files={"file": ("p.md", policy_bytes, "text/markdown")})
+    question = {"question": "Qual o valor do auxílio home office?"}
+
+    client.app.state.llm = failing(404, openai.NotFoundError)
+    r = client.post("/api/chat", json=question)
+    assert r.status_code == 502
+    assert "Modelo não encontrado" in r.json()["detail"]
+
+    client.app.state.llm = failing(429, openai.RateLimitError)
+    r = client.post("/api/chat", json=question)
+    assert r.status_code == 429
+    assert "Aguarde" in r.json()["detail"]
