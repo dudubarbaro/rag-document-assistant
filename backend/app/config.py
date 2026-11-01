@@ -24,6 +24,9 @@ class Settings(BaseSettings):
     # "gemini-flash-latest" é um apelido que sempre aponta para o Flash mais recente
     gemini_chat_model: str = "gemini-flash-latest"
     gemini_embedding_model: str = "gemini-embedding-001"
+    # Quanto o Gemini "pensa" antes de responder: low deixa as respostas mais rápidas.
+    # Deixe vazio para usar o padrão do modelo.
+    gemini_reasoning_effort: str = "low"
 
     # Azure OpenAI
     azure_openai_endpoint: str | None = None
@@ -42,7 +45,11 @@ class Settings(BaseSettings):
     # Score mínimo (0..1) para um trecho ser usado. Vazio = padrão do provedor:
     # embeddings offline (lexicais) geram scores menores que os de modelos reais.
     min_relevance: float | None = None
+    # OpenAI/Azure. No Gemini 3 o Google recomenda manter o padrão (1.0): valores baixos
+    # podem fazer o modelo entrar em loop, então ela não é enviada para o Gemini.
     temperature: float = 0.0
+    # Tempo máximo de cada chamada ao provedor de IA (evita requisições penduradas)
+    llm_timeout_seconds: float = 60
     max_upload_mb: int = 20
     # Quantos chunks vão em cada chamada de embeddings (o Gemini aceita no máximo 100)
     embedding_batch_size: int = 100

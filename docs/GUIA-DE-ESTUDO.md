@@ -306,6 +306,10 @@ O Gemini oferece uma API compatível com a da OpenAI, mas há diferenças que s�
 1. **Assinatura de raciocínio.** Quando o Gemini 3 pede para chamar uma ferramenta, ele manda junto um campo `extra_content.google.thought_signature` e exige recebê-lo de volta na próxima chamada. O `ChatOpenAI` do LangChain descarta esse campo ao remontar o histórico, e o resultado é um erro 400 no modo agente. A classe `GeminiChatModel` guarda a assinatura na `AIMessage` (`_create_chat_result`) e a recoloca no payload da próxima requisição (`_get_request_payload`).
 2. **Ferramentas sem parâmetros.** `listar_documentos()` e `data_de_hoje()` viram `{"type": "object", "properties": {}}`, que o Gemini recusa. A especificação da OpenAI permite omitir `parameters`, então a classe remove o campo nesses casos.
 
+3. **Temperatura.** O projeto usa `temperature=0` (respostas mais determinísticas), que é o recomendado para RAG nos modelos da OpenAI. No Gemini 3, o Google recomenda manter o padrão (1.0): valores baixos podem fazer o modelo entrar em loop de raciocínio. Foi o que aconteceu aqui: a segunda chamada do agente ficou pendurada até o Codespaces devolver 504. Por isso a temperatura não é enviada ao Gemini, o raciocínio é limitado com `reasoning_effort=low` (respostas mais rápidas) e toda chamada tem tempo limite (`LLM_TIMEOUT_SECONDS`).
+
+Lição: "compatível com a OpenAI" não quer dizer "igual à OpenAI". Cada provedor tem regras próprias, e elas aparecem nos detalhes.
+
 `tests/test_gemini.py` simula essas duas regras com um servidor falso (`httpx.MockTransport`), sem rede. É um bom exemplo de como testar integração com APIs externas: reproduzir o contrato da API, não só o caminho feliz.
 
 ### `backend/app/store.py`: persistência

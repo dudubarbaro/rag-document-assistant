@@ -47,6 +47,11 @@ def llm_error_message(exc: openai.APIError) -> tuple[int, str]:
             "Modelo não encontrado no provedor de IA. Confira o nome do modelo no .env "
             "(GEMINI_CHAT_MODEL / OPENAI_CHAT_MODEL)."
         )
+    if isinstance(exc, openai.APITimeoutError):
+        return 504, (
+            "O provedor de IA demorou demais para responder. Tente de novo em instantes "
+            "(no plano gratuito isso às vezes acontece em horários de pico)."
+        )
     if isinstance(exc, openai.APIConnectionError):
         return 502, "Não foi possível conectar ao provedor de IA."
     detail = str(getattr(exc, "body", None) or "")[:300]

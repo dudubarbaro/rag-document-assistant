@@ -19,6 +19,10 @@ def test_gemini_uses_openai_compatible_endpoint():
     emb = get_embeddings(s)
 
     assert chat.model_name == "gemini-flash-latest"
+    # Gemini 3: temperatura baixa pode causar loop; usamos o padrão do modelo
+    assert chat.temperature is None
+    assert chat.reasoning_effort == "low"
+    assert chat.request_timeout == 60
     assert chat.openai_api_base == GEMINI_BASE_URL
     assert emb.model == "gemini-embedding-001"
     assert emb.openai_api_base == GEMINI_BASE_URL

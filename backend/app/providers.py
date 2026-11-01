@@ -126,10 +126,18 @@ def get_chat_model(settings: Settings) -> BaseChatModel:
 
         from .gemini import GeminiChatModel
 
-        model_class = GeminiChatModel if settings.llm_provider == "gemini" else ChatOpenAI
-        return model_class(
+        if settings.llm_provider == "gemini":
+            return GeminiChatModel(
+                model=chat_model_name(settings),
+                reasoning_effort=settings.gemini_reasoning_effort or None,
+                timeout=settings.llm_timeout_seconds,
+                max_retries=1,
+                **_openai_compatible(settings),
+            )
+        return ChatOpenAI(
             model=chat_model_name(settings),
             temperature=settings.temperature,
+            timeout=settings.llm_timeout_seconds,
             **_openai_compatible(settings),
         )
     if settings.llm_provider == "azure":
@@ -141,6 +149,7 @@ def get_chat_model(settings: Settings) -> BaseChatModel:
             api_version=settings.azure_openai_api_version,
             azure_deployment=settings.azure_openai_chat_deployment,
             temperature=settings.temperature,
+            timeout=settings.llm_timeout_seconds,
         )
     return OfflineChatModel()
 
