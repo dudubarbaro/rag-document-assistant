@@ -49,7 +49,8 @@ def llm_error_message(exc: openai.APIError) -> tuple[int, str]:
         )
     if isinstance(exc, openai.APIConnectionError):
         return 502, "Não foi possível conectar ao provedor de IA."
-    return 502, f"Erro no provedor de IA: {exc}"
+    detail = str(getattr(exc, "body", None) or "")[:300]
+    return 502, f"Erro no provedor de IA: {exc} {detail}".strip()
 
 
 def init_state(app: FastAPI, settings: Settings) -> None:
@@ -84,7 +85,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @app.exception_handler(openai.APIError)
     async def provider_error(request: Request, exc: openai.APIError):
         status, message = llm_error_message(exc)
-        log.warning("Erro do provedor de IA em %s: %s", request.url.path, exc)
+        log.warning(
+            "Erro do provedor de IA em %s: %s | %s", request.url.path, exc, getattr(exc, "body", "")
+        )
         return JSONResponse(status_code=status, content={"detail": message})
 
     @app.get("/api/health")

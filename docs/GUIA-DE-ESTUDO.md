@@ -299,6 +299,15 @@ Uma classe `Settings` (pydantic-settings) lê variáveis de ambiente e o `.env`,
 - `HashingEmbeddings`: embeddings caseiros por *feature hashing*. Cada palavra (normalizada, sem acento) cai numa posição do vetor por hash MD5; o vetor é normalizado para tamanho 1. Simples, determinístico e sem rede.
 - `OfflineChatModel`: um "LLM" que não gera texto. Ele separa o contexto em frases, escolhe as 2 com mais palavras em comum com a pergunta e devolve com a citação. Serve para a demo sem chave e para mostrar que o pipeline está certo.
 
+### `backend/app/gemini.py`: quando a "compatibilidade" não é total
+
+O Gemini oferece uma API compatível com a da OpenAI, mas há diferenças que só aparecem no uso real (e que apareceram neste projeto):
+
+1. **Assinatura de raciocínio.** Quando o Gemini 3 pede para chamar uma ferramenta, ele manda junto um campo `extra_content.google.thought_signature` e exige recebê-lo de volta na próxima chamada. O `ChatOpenAI` do LangChain descarta esse campo ao remontar o histórico, e o resultado é um erro 400 no modo agente. A classe `GeminiChatModel` guarda a assinatura na `AIMessage` (`_create_chat_result`) e a recoloca no payload da próxima requisição (`_get_request_payload`).
+2. **Ferramentas sem parâmetros.** `listar_documentos()` e `data_de_hoje()` viram `{"type": "object", "properties": {}}`, que o Gemini recusa. A especificação da OpenAI permite omitir `parameters`, então a classe remove o campo nesses casos.
+
+`tests/test_gemini.py` simula essas duas regras com um servidor falso (`httpx.MockTransport`), sem rede. É um bom exemplo de como testar integração com APIs externas: reproduzir o contrato da API, não só o caminho feliz.
+
 ### `backend/app/store.py`: persistência
 
 - `build_vector_store`: `PGVector` se houver `DATABASE_URL`, senão `LocalVectorStore` (memória).
