@@ -7,7 +7,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    # Lê o .env da raiz do projeto mesmo quando o backend roda de dentro de backend/
+    model_config = SettingsConfigDict(env_file=("../.env", ".env"), extra="ignore")
 
     # Provedor de LLM/embeddings: "openai", "azure" ou "offline" (sem chave, para demo e testes)
     llm_provider: Literal["openai", "azure", "offline"] = "offline"
@@ -36,6 +37,9 @@ class Settings(BaseSettings):
     min_relevance: float | None = None
     temperature: float = 0.0
     max_upload_mb: int = 20
+
+    # Imprime no terminal tudo o que entra e sai do LLM (ótimo para estudar o fluxo)
+    debug_llm: bool = False
 
     @property
     def relevance_threshold(self) -> float:

@@ -5,6 +5,8 @@ services:
       POSTGRES_USER: rag
       POSTGRES_PASSWORD: rag
       POSTGRES_DB: rag
+    ports:
+      - "5432:5432" # exposto para rodar o backend fora do Docker e inspecionar o banco
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:

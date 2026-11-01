@@ -1,0 +1,9 @@
+{
+  "recommendations": [
+    "ms-python.python",
+    "ms-python.debugpy",
+    "charliermarsh.ruff",
+    "bierner.markdown-mermaid",
+    "ms-azuretools.vscode-docker"
+  ]
+}

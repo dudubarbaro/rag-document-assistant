@@ -75,24 +75,33 @@ Depois de subir, envie o arquivo de exemplo `samples/politica-trabalho-remoto.md
 
 ### Opção 2: localmente (desenvolvimento)
 
-```bash
-# Banco vetorial
+Requisitos: Python 3.12, Node.js 22 e Docker (só para o Postgres). O banco sobe no Docker; backend e frontend rodam direto na máquina, com reload automático.
+
+**Windows (PowerShell):**
+
+```powershell
+# 1. Banco vetorial
 docker compose up -d db
 
-# Backend
+# 2. Backend
 cd backend
-python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
+python -m venv .venv
+.venv\Scripts\Activate.ps1      # se bloquear: Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 pip install -r requirements-dev.txt
-export DATABASE_URL=postgresql+psycopg://rag:rag@localhost:5432/rag   # sem isso, usa memória
-uvicorn app.main:app --reload
+pytest -q                        # confere a instalação
+uvicorn app.main:app --reload    # http://localhost:8000/docs
 
-# Frontend (outro terminal)
+# 3. Frontend (em outro terminal)
 cd frontend
 npm install
-npm run dev
+npm run dev                      # http://localhost:5173
 ```
 
-> Para expor a porta do Postgres localmente, adicione `ports: ["5432:5432"]` ao serviço `db` no `docker-compose.yml`.
+**Linux / macOS:** igual, trocando a ativação do ambiente por `source .venv/bin/activate`.
+
+Para o backend usar o Postgres em vez do banco em memória, descomente `DATABASE_URL` no `.env` (o backend lê o `.env` da raiz mesmo rodando de dentro de `backend/`). O Postgres fica exposto na porta `5432`. Se você já tem um Postgres instalado nessa porta, troque para `"5433:5432"` no `docker-compose.yml` e na `DATABASE_URL`.
+
+No VS Code, o arquivo `.vscode/launch.json` traz configurações prontas para rodar a API, os testes e a avaliação **com breakpoints** (F5).
 
 ### Configuração (`.env`)
 
@@ -105,6 +114,7 @@ npm run dev
 | `CHUNK_SIZE` / `CHUNK_OVERLAP` | Tamanho e sobreposição dos chunks | `1000` / `150` |
 | `TOP_K` | Quantos chunks enviar ao LLM | `4` |
 | `MIN_RELEVANCE` | Score mínimo (0 a 1) para usar um chunk | `0.30` (`0.10` offline) |
+| `DEBUG_LLM` | Imprime no terminal o prompt enviado ao LLM e a resposta | `false` |
 
 ## API
 
@@ -158,6 +168,7 @@ backend/
   eval/            # avaliação de retrieval
 frontend/          # React + TypeScript (Vite), servido por nginx no Docker
 samples/           # documento de exemplo (empresa fictícia)
+docs/              # screenshot e guia de estudo do código
 docker-compose.yml # db (pgvector) + api + web
 ```
 

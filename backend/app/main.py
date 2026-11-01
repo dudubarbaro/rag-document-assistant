@@ -32,6 +32,10 @@ class ChatRequest(BaseModel):
 
 
 def init_state(app: FastAPI, settings: Settings) -> None:
+    if settings.debug_llm:
+        from langchain_core.globals import set_debug
+
+        set_debug(True)
     embeddings = get_embeddings(settings)
     app.state.settings = settings
     app.state.llm = get_chat_model(settings)
